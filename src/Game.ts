@@ -73,7 +73,7 @@ export class Game {
       const elapsedSeconds = Math.floor((currentTime - this.lastMoveTime) / 1000);
 
       // Deduct time from current player
-      if(this.board.turn() === "w") {
+      if (this.board.turn() === "w") {
         this.whiteTime = Math.max(0, this.whiteTime - elapsedSeconds);
       } else {
         this.blackTime = Math.max(0, this.blackTime - elapsedSeconds);
@@ -84,16 +84,16 @@ export class Game {
       this.broadcastTimeUpdate();
 
       // Check for timeout
-      if(this.whiteTime <= 0) {
+      if (this.whiteTime <= 0) {
         this.handleTimeout("white");
-      } else if(this.blackTime <= 0) {
+      } else if (this.blackTime <= 0) {
         this.handleTimeout("black");
       }
     }, 1000);
   }
 
   private stopTimer() {
-    if(this.timeInterval) {
+    if (this.timeInterval) {
       clearInterval(this.timeInterval);
       this.timeInterval = null;
     }
@@ -103,8 +103,8 @@ export class Game {
     const timeMessage = JSON.stringify({
       type: TIME_UPDATE,
       payload: {
-        whiteTime : this.whiteTime,
-        blackTime : this.blackTime,
+        whiteTime: this.whiteTime,
+        blackTime: this.blackTime,
       },
     });
 
@@ -137,7 +137,8 @@ export class Game {
     move: {
       from: string;
       to: string;
-    }){
+      promotion?: string;
+    }) {
 
     // FIXED: Use board.turn() instead of moveCount % 2
     // Player1 is WHITE ('w'), Player2 is BLACK ('b')
@@ -153,7 +154,11 @@ export class Game {
 
     // TRY TO MAKE THE MOVE
     try {
-      this.board.move(move);
+      this.board.move({
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion || 'q'
+      });
       console.log("Move successful:", move);
 
       // Reset move timer
@@ -167,7 +172,7 @@ export class Game {
       this.player1.send(moveMessage);
       this.player2.send(moveMessage);
 
-// Check for checkmate or stalemate
+      // Check for checkmate or stalemate
       if (this.board.isGameOver()) {
         this.stopTimer(); // ⏱️ Stop timer on game over
 
@@ -206,7 +211,7 @@ export class Game {
     this.stopTimer();   //Stop timer on resignation
 
     const winner = socket === this.player1 ? "black" : "white";
-    
+
     const gameOverMessage = JSON.stringify({
       type: GAME_OVER,
       payload: {
@@ -215,17 +220,17 @@ export class Game {
       },
     });
 
-    
+
     this.player1.send(gameOverMessage);
     this.player2.send(gameOverMessage);
-    
+
     console.log((`${winner} wins by resignation`));
   }
 
   // DRAW METHOD 
   offerDraw(socket: WebSocket) {
 
-    const opponent = socket === this.player1 ? this.player2 : this.player1; 
+    const opponent = socket === this.player1 ? this.player2 : this.player1;
 
     // Sends draw offer to opponent
     opponent.send(
@@ -239,12 +244,12 @@ export class Game {
 
   // METHOD TO HANDLE DRAW RESPONSE 
   respondToDraw(socket: WebSocket, accepted: boolean) {
-      const opponent = socket === this.player1 ? this.player2 : this.player1;
+    const opponent = socket === this.player1 ? this.player2 : this.player1;
 
-    if(accepted) {
+    if (accepted) {
       this.stopTimer(); // stop timer 
 
-       const gameOverMessage = JSON.stringify({
+      const gameOverMessage = JSON.stringify({
         type: GAME_OVER,
         payload: {
           winner: "draw",
